@@ -4,11 +4,11 @@ class BeginNode < OverridableNode
   # @param props [Hash]
   # @return [Parser::AST::Node]
   def as_node(type = @type, children = @children, props = @props)
+    children = children.reject { |c| c.is_a?(OverridableNode) && c.removed }
     if children && children.size > 1
-      return super
-    else
-      return children ? map_child(children[0]) : nil
+      return super(type, children, props)
     end
+    return children ? map_child(children[0]) : nil
   end
 
   # @param other [Parser::AST::Node | OverridableNode]

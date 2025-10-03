@@ -23,3 +23,27 @@ def multiplier(type_to_check, target_type, result)
   maps = [5, 20]
   log_data("multiplier of #{type_to_check} (#{data_type(target_type).name}) = #{result} => new_eff = #{@effectiveness}")
 end
+
+
+module RPG
+  # Script that cache bitmaps when they are reusable.
+  # @author Nuri Yuri
+  module Cache
+    # Array of load methods to call when the game starts
+    LOADS = %i[load_animation]
+  end
+
+  # Some comment
+  module Cache2
+    # NOOP
+    # NOOP2
+  end
+
+  module Cache
+    # Extension of gif files
+    GIF_EXTENSION = '.gif'
+    # Common filename of the image to load
+    Common_filename = 'Graphics/%s/%s' # After comment
+    # Next line comment (will be alone because no matching expression)
+  end
+end
