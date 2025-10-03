@@ -1,0 +1,8 @@
+require 'prism'
+require 'parser'
+require 'unparser'
+require_relative 'builder'
+require_relative 'helper'
+require_relative 'nodes/all'
+require_relative 'class_space'
+require_relative 'unparser_fixes'

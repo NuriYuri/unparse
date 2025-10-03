@@ -1,0 +1,57 @@
+(class
+  (const nil :Test) nil
+  (begin
+    (def :initialize
+      (args
+        (arg :values)
+        (kwoptarg :kw
+          (int 0)))
+      (begin
+        (ivasgn :@values
+          (lvar :values))
+        (ivasgn :@kw
+          (lvar :kw))))
+    (def :update
+      (args)
+      (send
+        (kwbegin
+          (block
+            (send
+              (block
+                (send
+                  (ivar :@values) :map)
+                (args
+                  (arg :f))
+                (send
+                  (lvar :f) :to_s)) :select)
+            (args
+              (arg :f))
+            (send
+              (send
+                (lvar :f) :size) :>
+              (int 0)))) :compact))
+    (def :dispose
+      (args
+        (arg :reason)
+        (blockarg :on_dispose))
+      (begin
+        (send
+          (ivar :@values) :each
+          (block-pass
+            (lvar :on_dispose)))
+        (send
+          (ivar :@kw) :*
+          (lvar :reason))
+        (send nil :print
+          (str "disposed"))))
+    (def :print_kw
+      (args
+        (arg :arg))
+      (begin
+        (send nil :print
+          (ivar :@kw)
+          (lvar :arg))
+        (send nil :print
+          (send
+            (lvar :arg) :*
+            (int 2)))))))
