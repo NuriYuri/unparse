@@ -6,5 +6,11 @@ module Unparser
         emit_shadowargs
       end
     end
+
+    class Assignment
+      def emit_array
+        right_emitter.write_to_buffer
+      end
+    end
   end
 end

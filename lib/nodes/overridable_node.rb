@@ -34,6 +34,16 @@ class OverridableNode < Parser::AST::Node
     return Parser::AST::Node.new(type, map_children(children), props)
   end
 
+  # Fix for unparser
+  def instance_of?(*args)
+    return true if args[0] == Parser::AST::Node
+  end
+
+  # Fix for unparser
+  def class
+    return Parser::AST::Node
+  end
+
   private
 
   # @param children [Array<Parser::AST::Node | OverridableNode>]

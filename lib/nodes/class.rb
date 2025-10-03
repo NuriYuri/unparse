@@ -38,6 +38,12 @@ class ClassNode < OverridableNode
 
     # @param other_content [Parser::AST::Node | OverridableNode]
     def append_content(other_content)
+      # In case we append content into a class like: `class A;end`
+      unless @content
+        @content = other_content
+        return
+      end
+
       unless @content.is_a?(BeginNode)
         props = @content.is_a?(OverridableNode) ? @content.props : { location: @content.location }
         @content = BeginNode.new(:begin, [@content], props)

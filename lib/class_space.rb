@@ -32,6 +32,14 @@ class ClassSpace
     return BeginNode.new(:begin, children, { location: children[0].location }).as_node
   end
 
+  # Rewrite a node based on the class space
+  # @param node [Parser::AST::Node]
+  def rewrite_node(node)
+    return node.as_node if node.is_a?(BeginNode) || node.respond_to?(:as_node)
+
+    raise "Cannot handle rewrite_node with #{node.type} node"
+  end
+
   private
 
   # Base the class name and return the next path

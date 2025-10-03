@@ -15,7 +15,9 @@ class ConstNode < OverridableNode
     elsif left.type == :cbase
       @path = [:cbase, @name]
     else
-      raise "Unexpected left part for constant: #{left}"
+      @no_rebase = true
+      @path = [@name] # <= Let's ignore this issue for very specific constant access
+      # raise "Unexpected left part for constant: #{left}"
     end
     super
   end
@@ -24,6 +26,7 @@ class ConstNode < OverridableNode
   # @param parent_path [Array<Symbol>] path of the parent module/class
   # @return [self]
   def base(parent_path)
+    raise "Cannot rebase dynamic constant #{self}" if @no_rebase
     return self if @path.first == :cbase # ::Const is already based
 
     @path.insert(0, *parent_path)
