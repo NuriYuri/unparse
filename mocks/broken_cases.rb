@@ -70,3 +70,18 @@ module A
     end
   end
 end
+
+def guards
+  return 0 if test
+  return 1 unless test && things.all? { |v| v > 0 }
+
+  test do |f|
+    p 0
+  end
+  moves.concat(@skill_learnt.map { |move| move.is_a?(Integer) ? data_move(move).db_symbol : move })
+  return 2
+end
+
+def binary
+  return false if @ev_dfs > Configs.stats.max_stat_ev - 1
+end
