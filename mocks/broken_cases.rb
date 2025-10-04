@@ -47,3 +47,26 @@ module RPG
     # Next line comment (will be alone because no matching expression)
   end
 end
+
+def safe_code(name, &value)
+  receiver = value.binding.receiver
+  receiver = Object if receiver.instance_of?(Object)
+  return (SafeExec::SAFE_CODE[receiver] ||= {})[name] = value
+end
+
+module A
+  class B
+    def test
+
+    end
+  end
+end
+
+module A
+  class B
+    def test2
+      (wrapper = test).stuff = true
+      puts wrapper
+    end
+  end
+end
