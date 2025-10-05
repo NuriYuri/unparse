@@ -1,11 +1,11 @@
 class SingletonMethodNode < OverridableNode
-  # @type [Parser::AST::Node]
+  # @return [Parser::AST::Node]
   attr_reader :target
-  # @type [Symbol]
+  # @return [Symbol]
   attr_reader :name
-  # @type [Parser::AST::Node]
+  # @return [Parser::AST::Node]
   attr_reader :arguments
-  # @type [Parser::AST::Node]
+  # @return [Parser::AST::Node]
   attr_reader :content
 
   def initialize(type, children, props)

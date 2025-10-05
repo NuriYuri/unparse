@@ -1,9 +1,9 @@
 class SendNode < OverridableNode
-  # @type [Parser::AST::Node]
+  # @return [Parser::AST::Node]
   attr_reader :target
-  # @type [Symbol]
+  # @return [Symbol]
   attr_reader :method_name
-  # @type [Array<Parser::AST::Node>]
+  # @return [Array<Parser::AST::Node>]
   attr_reader :arguments
 
   def initialize(type, children, props)

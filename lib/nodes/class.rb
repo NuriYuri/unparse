@@ -1,9 +1,9 @@
 class ClassNode < OverridableNode
-  # @type [ConstNode]
+  # @return [ConstNode]
   attr_reader :name
-  # @type [ConstNode, nil]
+  # @return [ConstNode, nil]
   attr_reader :super_class
-  # @type [Parser::AST::Node]
+  # @return [Parser::AST::Node]
   attr_reader :content
 
   # @param type [Symbol]

@@ -1,7 +1,7 @@
 class ModuleNode < OverridableNode
-  # @type [ConstNode]
+  # @return [ConstNode]
   attr_reader :name
-  # @type [Parser::AST::Node]
+  # @return [Parser::AST::Node]
   attr_reader :content
 
   def initialize(type, children, props)
