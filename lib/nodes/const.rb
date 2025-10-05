@@ -1,7 +1,7 @@
 class ConstNode < OverridableNode
-  # @type [Symbol]
+  # @return [Symbol]
   attr_reader :name
-  # @type [Array<Symbol>]
+  # @return [Array<Symbol>]
   attr_reader :path
 
   def initialize(type, children, props)

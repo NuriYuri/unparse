@@ -1,7 +1,7 @@
 class SingletonClassNode < OverridableNode
-  # @type [Parser::AST::Node]
+  # @return [Parser::AST::Node]
   attr_reader :target
-  # @type [Parser::AST::Node]
+  # @return [Parser::AST::Node]
   attr_reader :content
 
   def initialize(type, children, props)
