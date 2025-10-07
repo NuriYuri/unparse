@@ -93,4 +93,20 @@ class Psych::Visitors::YAMLTree
   end
 end
 
-File.write('code_space.yml', YAML.dump(space.instance_variable_get(:@all_classes_per_path).map { |k, v| [k.join('::'), v] }.to_h))
+# Note about next section: it lists all the methods that are returning literals.
+#   The returned list shows we cannot optimize method calls that returns literals.
+#   In any case, those are not likely to be called a lot.
+# all_classes = space.instance_variable_get(:@all_classes)
+# all_classes.each do |c|
+#   m = c.public_instance_methods.each_value.select { |m| m.is_value_method? }.concat(
+#     c.private_instance_methods.each_value.select { |m| m.is_value_method? }
+#   ).concat(
+#     c.protected_instance_methods.each_value.select { |m| m.is_value_method? }
+#   )
+#   if m.size > 0
+#     puts "Simple method values for #{c.path}"
+#     puts m.map(&:name).join(', ')
+#   end
+# end
+
+# File.write('code_space.yml', YAML.dump(space.instance_variable_get(:@all_classes_per_path).map { |k, v| [k.join('::'), v] }.to_h))

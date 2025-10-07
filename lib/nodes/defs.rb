@@ -36,3 +36,4 @@ module WithSingletonMethodNode
 end
 
 BuilderPrism.prepend(WithSingletonMethodNode)
+SingletonMethodNode.include(ValueMethod)
