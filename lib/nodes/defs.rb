@@ -7,6 +7,8 @@ class SingletonMethodNode < OverridableNode
   attr_reader :arguments
   # @return [Parser::AST::Node]
   attr_reader :content
+  # @return [MethodNode, nil]
+  attr_accessor :overwrite
 
   def initialize(type, children, props)
     @target = children[0]

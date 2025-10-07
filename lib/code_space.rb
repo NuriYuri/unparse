@@ -96,10 +96,10 @@ class CodeSpace
     # @parma node [ClassNode | ModuleNode | SingletonClassNode]
     # @param space [CodeSpace]
     def initialize(path, parent_path, node, space)
+      @space = space
       @path = path
       @parent = parent_path
-      @super_class = node.is_a?(ClassNode) ? node.super_class&.base(parent_path)&.path : nil
-      @space = space
+      @super_class = compute_super_class(node, parent_path)
       @constants = {}
       @public_instance_methods = {}
       @private_instance_methods = {}
@@ -252,11 +252,16 @@ class CodeSpace
 
       node = search_method(from.children[0])
       return unless node
+
       name = to.children[0]
+      # We're looking into instance methods of self to avoid undesired overwrite of parent or mixin methods
+      existing_method = @public_instance_methods[name] || @private_instance_methods[name] || @protected_instance_methods[name] 
+      return existing_method.overwrite = node if existing_method
+
       case @current_visibility
-      when :public then @public_instance_methods[name] = node
-      when :private then @private_instance_methods[name] = node
-      when :protected then @protected_instance_methods[name] = node
+      when :public then @public_instance_methods[name] = node.dup
+      when :private then @private_instance_methods[name] = node.dup
+      when :protected then @protected_instance_methods[name] = node.dup
       end
     end
 
@@ -315,6 +320,25 @@ class CodeSpace
         return nil unless constant
 
         return constant.search_const(rest) if constant.is_a?(CodeSpaceClass)
+      end
+
+      return nil
+    end
+
+    private
+
+    # @param node [Parser::AST::Node | nil]
+    # @param parent_path [Array<Symbol>]
+    # @return [Array<Symbol> | nil]
+    def compute_super_class(node, parent_path)
+      return nil unless node
+      return nil unless node.is_a?(ClassNode)
+      return nil unless node.super_class
+      
+      if node.super_class.is_a?(ConstNode)
+        return node.super_class.base(parent_path).path
+      elsif node.super_class.type == :self
+        return parent_path
       end
 
       return nil

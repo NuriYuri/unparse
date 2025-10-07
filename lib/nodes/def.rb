@@ -5,6 +5,8 @@ class MethodNode < OverridableNode
   attr_reader :arguments
   # @return [Parser::AST::Node]
   attr_reader :content
+  # @return [MethodNode, nil]
+  attr_accessor :overwrite
 
   def initialize(type, children, props)
     @name = children[0]
@@ -20,8 +22,6 @@ class MethodNode < OverridableNode
   def as_node(type = @type, children = nil, props = @props)
     super(type, children || [@name, @arguments, @content], props)
   end
-
-  # TODO: Define a overwrite method
 end
 
 module WithMethodNode
