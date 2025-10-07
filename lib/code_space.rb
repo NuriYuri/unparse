@@ -17,6 +17,12 @@ class CodeSpace
   end
 
   # @param path [Array<Symbol>]
+  # @return [Boolean]
+  def has_class?(path)
+    return @all_classes_per_path.has_key?(path)
+  end
+
+  # @param path [Array<Symbol>]
   # @param klass [CodeSpaceClass]
   def register(path, klass)
     @all_classes_per_path[path] = klass
@@ -99,7 +105,6 @@ class CodeSpace
       @space = space
       @path = path
       @parent = parent_path
-      @super_class = compute_super_class(node, parent_path)
       @constants = {}
       @public_instance_methods = {}
       @private_instance_methods = {}
@@ -112,8 +117,9 @@ class CodeSpace
       @reader_attributes = []
       @writer_attributes = []
       @accessor_attributes = []
-      @current_visibility = :public
       space.register(path, self)
+      @super_class = compute_super_class(node)
+      @current_visibility = :public
       ingest(node)
     end
 
@@ -328,20 +334,26 @@ class CodeSpace
     private
 
     # @param node [Parser::AST::Node | nil]
-    # @param parent_path [Array<Symbol>]
     # @return [Array<Symbol> | nil]
-    def compute_super_class(node, parent_path)
+    def compute_super_class(node)
       return nil unless node
       return nil unless node.is_a?(ClassNode)
       return nil unless node.super_class
       
       if node.super_class.is_a?(ConstNode)
-        return node.super_class.base(parent_path).path
+        path = locate_actual_super_class_path(node.super_class.path)
+        return node.super_class.base(path).path
       elsif node.super_class.type == :self
-        return parent_path
+        return @parent
       end
 
       return nil
+    end
+
+    # @param super_class_path [Array<Symbol>]
+    def locate_actual_super_class_path(super_class_path)
+      options = (@parent.size).downto(1).map { |length| @parent[0...length] }
+      return options.find { |path| @space.has_class?(path.dup.concat(super_class_path)) } || [:cbase]
     end
   end
 end
