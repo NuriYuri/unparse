@@ -1,11 +1,17 @@
 require_relative 'lib/bootstrap'
 require 'yaml'
 
-filepath = '/Volumes/mvme/projects/PokemonStudio/psdk-binaries/pokemonsdk/.release/scripts/0_Dependencies.rb'
-node, * = parse_with_comment(source_buffer('test.rb', File.read(filepath)))
+$no_method_content = ARGV.include?('no_method_content')
 
 space = CodeSpace.new
-space.ingest_root(node)
+
+path = '/Volumes/mvme/projects/PokemonStudio/psdk-binaries/pokemonsdk/.release/scripts'
+Dir["#{path}/*.rb"].each do |filename|
+  base_name = File.basename(filename)
+  puts "Processing #{base_name}"
+  node, * = parse_with_comment(source_buffer(base_name, File.read(filename)))
+  space.ingest_root(node)
+end
 
 class Parser::Source::Range
   def instance_variable_get(ivar)
@@ -24,16 +30,18 @@ class CodeSpace::CodeSpaceClass
 end
 
 class MethodNode
-  IVAR = %i[@name @arguments @content]
+  IVAR = $no_method_content ? %i[@name @arguments] : %i[@name @arguments @content]
+  IVARO = IVAR.dup << :@overwrite
   def instance_variables
-    IVAR
+    @overwrite ? IVARO : IVAR
   end
 end
 
 class SingletonMethodNode
   IVAR = %i[@target @name @arguments @content]
+  IVARO = IVAR.dup << :@overwrite
   def instance_variables
-    IVAR
+    @overwrite ? IVARO : IVAR
   end
 end
 
