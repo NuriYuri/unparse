@@ -35,6 +35,9 @@ class SendNode
     elsif @method_name == :release? && @arguments.empty? && $optimize_release
       return Parser::AST::Node.new(:true, [], @props) if @target == nil
       return Parser::AST::Node.new(:true, [], @props) if @target.is_a?(ConstNode) && @target.name == :PSDK_CONFIG && @target.path.size == 1
+    elsif is_call_to_remove?
+      @removed = true
+      return self
     # TODO: various PSDK configs optimizations
     end
     @arguments = @arguments.flat_map { |a| a.respond_to?(:optimize) ? a.optimize(klass) : a }
@@ -48,6 +51,15 @@ class SendNode
     end
 
     return self
+  end
+
+  private
+
+  def is_call_to_remove?
+    return true if @method_name == :log_debug && @target == nil
+    return true if @target.is_a?(ConstNode) && @target.path.size == 2 && @target.path[0] == :Yuki && @target.name == :ElapsedTime
+
+    return false
   end
 end
 
