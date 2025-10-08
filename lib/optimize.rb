@@ -23,6 +23,12 @@ class OverridableNode
 
     return self
   end
+
+  private
+
+  def s(type, *children)
+    Parser::AST::Node.new(type, children, @props)
+  end
 end
 
 class SendNode
@@ -39,6 +45,8 @@ class SendNode
     elsif is_call_to_remove?
       @removed = true
       return self
+    elsif is_block_call?(klass)
+      return to_while_loop
     # TODO: various PSDK configs optimizations
     end
     @arguments = @arguments.flat_map { |a| a.respond_to?(:optimize) ? a.optimize(klass) : a }
@@ -56,11 +64,35 @@ class SendNode
 
   private
 
+  BLOCK_ARGS = %i[block_pass block]
+
+  # @param klass [CodeSpace::CodeSpaceClass]
+  def is_block_call?(klass)
+    return klass.block_to_while_allowed && !@arguments.empty? &&
+      @arguments.last.type == :block_pass && @arguments.last.children[0]&.type == :sym
+  end
+
   def is_call_to_remove?
     return true if @method_name == :log_debug && @target == nil
     return true if @target.is_a?(ConstNode) && @target.path.size == 2 && @target.path[0] == :Yuki && @target.name == :ElapsedTime
 
     return false
+  end
+
+  def to_while_loop
+    raise "Unsupported enumerator #{@method_name}" if @method_name != :each
+
+    return [
+      s(:lvasgn, :_i, s(:int, 0)),
+      s(:lvasgn, :_l, s(:send, @target, :size)),
+      s(:while,
+        s(:send, s(:lvar, :_i), :<, s(:lvar, :_l)),
+        s(:begin, 
+          s(:send, s(:index, @target, s(:lvar, :_i)), @arguments.last.children[0].children[0]),
+          s(:op_asgn, s(:lvar, :_i), :+, s(:int, 1))
+        )
+      )
+    ]
   end
 end
 
@@ -161,7 +193,77 @@ class BlockNode
     @arguments = @arguments.optimize(klass) if @left.respond_to?(:optimize)
     @content = @content.optimize(klass) if @content.respond_to?(:optimize)
 
+    if klass.block_to_while_allowed && @left.is_a?(SendNode)
+      return to_while_loop
+    end
     return self
+  end
+
+  def to_while_loop
+    method_name = @left.method_name
+    target = @left.target
+    proc_args = @arguments.children.map { |c| c.type == :arg ? c.children[0] : c.children[0].children[0] }
+
+    case method_name
+    when :each
+      i = :"_#{proc_args[0]}_i"
+      l = :"_#{proc_args[0]}_l"
+      return [
+        s(:lvasgn, i, s(:int, 0)),
+        s(:lvasgn, l, s(:send, target, :size)),
+        s(:while,
+          s(:send, s(:lvar, i), :<, s(:lvar, l)),
+          s(:begin,
+            s(:lvasgn, proc_args[0], s(:index, target, s(:lvar, i))),
+            *(@content.is_a?(BeginNode) ? @content.children : [@content]).flatten,
+            s(:op_asgn, s(:lvar, i), :+, s(:int, 1))
+          )
+        )
+      ]
+    when :each_with_index
+      i = proc_args[1]
+      l = :"_#{proc_args[0]}_l"
+      return [
+        s(:lvasgn, i, s(:int, 0)),
+        s(:lvasgn, l, s(:send, target, :size)),
+        s(:while,
+          s(:send, s(:lvar, i), :<, s(:lvar, l)),
+          s(:begin,
+            s(:lvasgn, proc_args[0], s(:index, target, s(:lvar, i))),
+            *(@content.is_a?(BeginNode) ? @content.children : [@content]).flatten,
+            s(:op_asgn, s(:lvar, i), :+, s(:int, 1))
+          )
+        )
+      ]
+    when :times
+      i = proc_args[0]
+      l = target
+      return [
+        s(:lvasgn, i, 0),
+        s(:while,
+          s(:send, s(:lvar, i), :<, l),
+          s(:begin,
+            *(@content.is_a?(BeginNode) ? @content.children : [@content]).flatten,
+            s(:op_asgn, s(:lvar, i), :+, s(:int, 1))
+          )
+        )
+      ]
+    when :upto
+      i = proc_args[0]
+      l = @left.arguments[0]
+      return [
+        s(:lvasgn, i, target),
+        s(:while,
+          s(:send, s(:lvar, i), :<=, l),
+          s(:begin,
+            *(@content.is_a?(BeginNode) ? @content.children : [@content]).flatten,
+            s(:op_asgn, s(:lvar, i), :+, s(:int, 1))
+          )
+        )
+      ]
+    else
+      raise "Unsupported enumerator #{method_name}"
+    end
   end
 end
 
@@ -187,14 +289,19 @@ class CodeSpace
   end
 
   class CodeSpaceClass
+    # @return [Boolean]
+    attr_reader :block_to_while_allowed
     def optimize
       @public_instance_methods.each_value do |meth|
+        @block_to_while_allowed = is_block_to_while_allowed?(meth.name)
         meth.optimize(self)
       end
       @private_instance_methods.each_value do |meth|
+        @block_to_while_allowed = is_block_to_while_allowed?(meth.name)
         meth.optimize(self)
       end
       @protected_instance_methods.each_value do |meth|
+        @block_to_while_allowed = is_block_to_while_allowed?(meth.name)
         meth.optimize(self)
       end
       optimize_accessor(:reader, @reader_attributes)
@@ -213,6 +320,26 @@ class CodeSpace
       props = first.props
       first.instance_variable_set(:@arguments, accessors.map { |n| Parser::AST::Node.new(:sym, [n], props) })
       rest.each { |n| n.removed = true }
+    end
+
+    private
+
+    ALLOWED_PATHS = [
+      [:cbase, :Yuki, :Tilemap],
+      [:cbase, :Yuki, :Tilemap, :MapData]
+    ]
+    ALLOWED_METHODS = [
+      [:draw, :update_position],
+      [:draw_map]
+    ]
+
+    # @param method_name [Symbol]
+    # @return [Boolean]
+    def is_block_to_while_allowed?(method_name)
+      path_index = ALLOWED_PATHS.index(@path)
+      return false unless path_index
+
+      return ALLOWED_METHODS[path_index]&.include?(method_name) || false
     end
   end
 end
