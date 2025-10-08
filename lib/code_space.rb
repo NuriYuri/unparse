@@ -188,7 +188,15 @@ class CodeSpace
       when :casgn
         return if node.children[0]
 
-        @constants[node.children[1]] = node.children[2]
+        child = node.children[2]
+        if child.is_a?(SendNode) && @path.last == :SystemTags && child.target == nil && child.method_name == :gen && child.arguments.size == 2
+          def child.as_node(*)
+            value = 384 + arguments[0].children[0] + arguments[1].children[0] * 8
+            return Parser::AST::Node.new(:int, [value], @props)
+          end
+          child = child.as_node
+        end
+        @constants[node.children[1]] = child
       end
     end
 
@@ -303,6 +311,7 @@ class CodeSpace
     # @param path [Array<Symbol>]
     # @return [CodeSpaceClass | Parser::AST::Node]
     def search_const(path)
+      # TODO: Improve this garbage
       return @space.get_class(path) if path[0] == :cbase
 
       if path.size == 1
@@ -323,11 +332,33 @@ class CodeSpace
           constant = klass.search_const(path)
           return constant if constant
         end
-        return @space.get_class(@super_class).search_const(path) if @super_class
+        
+        if @super_class
+          value = @space.get_class(@super_class).search_const(path)
+          return value if value
+        end
+
+        options = (@parent.size).downto(1).map { |length| @parent[0...length].concat(path) }
+        options.each do |o|
+          next unless @space.has_class?(o)
+
+          return @space.get_class(o)
+        end
       else
         name, *rest = path
         constant = search_const([name])
-        return nil unless constant
+        unless constant
+          with_cbase = [:cbase, *path]
+          return @space.get_class(with_cbase) if @space.has_class?(with_cbase)
+
+          options = (@parent.size).downto(1).map { |length| @parent[0...length].concat(path) }
+          options.each do |o|
+            next unless @space.has_class?(o)
+
+            return @space.get_class(o)
+          end
+          return nil
+        end
 
         return constant.search_const(rest) if constant.is_a?(CodeSpaceClass)
       end
@@ -354,6 +385,11 @@ class CodeSpace
           if @space.has_class?(from_this_class)
             return @space.get_class(from_this_class).const_get([const_name])
           end
+        end
+
+        @includes.each do |o|
+          value = @space.get_class(o).const_get([const_name])
+          return value if value
         end
 
         options = (@parent.size).downto(1).map { |length| @parent[0...length].concat(klass_path) }
