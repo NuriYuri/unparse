@@ -27,6 +27,7 @@ end
 
 class SendNode
   MATH_NODE = %i[int float]
+  MATH_OPS = %i[+ - * / ** ^]
   # @param klass [CodeSpace::CodeSpaceClass]
   # @return [OverridableNode]
   def optimize(klass)
@@ -43,7 +44,7 @@ class SendNode
     @arguments = @arguments.flat_map { |a| a.respond_to?(:optimize) ? a.optimize(klass) : a }
     @target = @target.optimize(klass) if @target.respond_to?(:optimize)
 
-    if @target && MATH_NODE.include?(@target.type)
+    if @target && MATH_NODE.include?(@target.type) && MATH_OPS.include?(method_name)
       if @arguments.size == 1 && MATH_NODE.include?(@arguments[0].type)
         res = @target.children[0].send(@method_name, @arguments[0].children[0])
         return @target.updated(res.is_a?(Integer) ? :int : :float, [res])
@@ -199,6 +200,7 @@ class CodeSpace
       optimize_accessor(:reader, @reader_attributes)
       optimize_accessor(:writer, @writer_attributes)
       optimize_accessor(:accessor, @accessor_attributes)
+      @constants.each_value { |c| c.optimize(self) if c.respond_to?(:optimize) && !c.is_a?(CodeSpaceClass) }
     end
 
     # @param type [Symbol]
