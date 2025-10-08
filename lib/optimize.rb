@@ -59,10 +59,14 @@ class IfNode
     @if_true = @if_true.optimize(klass) if @if_true.respond_to?(:optimize)
     @if_false = @if_false.optimize(klass) if @if_false.respond_to?(:optimize)
 
-    if @condition.type == :true && @if_true
-      return @if_true
-    elsif @condition.type == :false && @if_false
-      return @if_false
+    if @condition.type == :true
+      return @if_true if @if_true
+      @removed = true
+      return self
+    elsif @condition.type == :false
+      return @if_false if @if_false
+      @removed = true
+      return self
     end
     return self
   end
@@ -180,6 +184,21 @@ class CodeSpace
       @protected_instance_methods.each_value do |meth|
         meth.optimize(self)
       end
+      optimize_accessor(:reader, @reader_attributes)
+      optimize_accessor(:writer, @writer_attributes)
+      optimize_accessor(:accessor, @accessor_attributes)
+    end
+
+    # @param type [Symbol]
+    # @param accessors [Array<Symbol>]
+    def optimize_accessor(type, accessors)
+      return if accessors.empty?
+      return if @accessor_nodes[type].size <= 1
+
+      first, *rest = @accessor_nodes[type]
+      props = first.props
+      first.instance_variable_set(:@arguments, accessors.map { |n| Parser::AST::Node.new(:sym, [n], props) })
+      rest.each { |n| n.removed = true }
     end
   end
 end

@@ -1,12 +1,10 @@
 class BeginNode < OverridableNode
-  CLASS_LIKE_CHILDREN = %i[class sclass module]
   # @param type [Symbol]
   # @param children [Array<Parser::AST::Node | OverridableNode>]
   # @param props [Hash]
   # @return [Parser::AST::Node]
   def as_node(type = @type, children = @children, props = @props)
     return super unless children
-    return super unless CLASS_LIKE_CHILDREN.include?(children[0]&.type)
 
     children = children.reject { |c| c.is_a?(OverridableNode) && c.removed }
     return super(type, children, props) if children.size > 1

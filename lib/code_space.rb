@@ -117,6 +117,7 @@ class CodeSpace
       @reader_attributes = []
       @writer_attributes = []
       @accessor_attributes = []
+      @accessor_nodes = { reader: [], writer: [], accessor: [] }
       space.register(path, self)
       @super_class = compute_super_class(node)
       @current_visibility = :public
@@ -195,14 +196,14 @@ class CodeSpace
     def ingest_send(node)
       return if node.target != nil # <= Does not concern us
 
-      handle_send(node.method_name, node.arguments)
+      handle_send(node)
     end
 
-    # @param method_name [Symbol]
-    # @param arguments [Array<Parser::AST::Node]
-    def handle_send(method_name, arguments)
+    # @param node [SendNode]
+    def handle_send(node)
+      arguments = node.arguments
       arg0 = arguments[0]
-      case method_name
+      case node.method_name
       when :prepend
         const = search_const(arg0.path) if arg0.is_a?(ConstNode) && arguments.size == 1
         @prepends << const.path if const.is_a?(CodeSpaceClass)
@@ -210,10 +211,13 @@ class CodeSpace
         const = search_const(arg0.path) if arg0.is_a?(ConstNode) && arguments.size == 1
         @includes << const.path if const.is_a?(CodeSpaceClass)
       when :attr_reader
+        @accessor_nodes[:reader] << node
         @reader_attributes.concat(arguments.map { |v| v.children[0] })
       when :attr_writer
+        @accessor_nodes[:writer] << node
         @writer_attributes.concat(arguments.map { |v| v.children[0] })
       when :attr_accessor
+        @accessor_nodes[:accessor] << node
         @accessor_attributes.concat(arguments.map { |v| v.children[0] })
       when :remove_const
         STDERR.puts "Went through remove_const for #{@path} => #{arguments}"
