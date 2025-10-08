@@ -331,6 +331,35 @@ class CodeSpace
       return nil
     end
 
+    # Get the value of a constant
+    # @param path [Array<Symbol>] path to the class
+    # @return [Parser::AST::Node | nil]
+    def const_get(path)
+      return @constants[path[0]] if path.size == 1 && @constants.has_key?(path[0])
+
+      if path[0] == :cbase
+        return nil if @space.has_class?(path) # For now we ignore the class case
+
+        *klass_path, const_name = path
+        return @space.get_class(klass_path).const_get([const_name])
+      else
+        *klass_path, const_name = path
+        from_this_class = @path.dup.concat(klass_path)
+        if @space.has_class?(from_this_class)
+          return @space.get_class(from_this_class).const_get([const_name])
+        end
+
+        options = (@parent.size).downto(1).map { |length| @parent[0...length].concat(klass_path) }
+        options.each do |o|
+          next unless @space.has_class?(o)
+
+          value = @space.get_class(o).const_get([const_name])
+          return value if value
+        end
+      end
+      return nil
+    end
+
     private
 
     # @param node [Parser::AST::Node | nil]
