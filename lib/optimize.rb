@@ -3,8 +3,8 @@ module MethodNodeOptimize
   # @return [OverridableNode]
   def optimize(klass)
     return self unless @content
-    
-    @content.optimize(klass) if @content.respond_to?(:optimize)
+
+    @content = @content.optimize(klass) if @content.respond_to?(:optimize)
     return self
   end
 end
@@ -19,7 +19,7 @@ class OverridableNode
     return self unless @children
     return self if type == :casgn
 
-    @children = @children.flat_map { |c| c.optimize(klass) if c.respond_to?(:optimize) }
+    @children = @children.flat_map { |c| c.respond_to?(:optimize) ? c.optimize(klass) : c }
 
     return self
   end
@@ -36,7 +36,7 @@ class SendNode
       return Parser::AST::Node.new(:true, [], @props) if @target.is_a?(ConstNode) && @target.name == :PSDK_CONFIG && @target.path.size == 1
     # TODO: various PSDK configs optimizations
     end
-    @arguments = @arguments.flat_map { |a| a.optimize(klass) if a.respond_to?(:optimize) }
+    @arguments = @arguments.flat_map { |a| a.respond_to?(:optimize) ? a.optimize(klass) : a }
 
     return self
   end
@@ -107,7 +107,7 @@ class IndexNode
   # @param klass [CodeSpace::CodeSpaceClass]
   # @return [OverridableNode]
   def optimize(klass)
-    @indexes = @indexes.flat_map { |c| c.optimize(klass) if c.respond_to?(:optimize) }
+    @indexes = @indexes.flat_map { |c| c.respond_to?(:optimize) ? c.optimize(klass) : c }
     @right = @right.optimize(klass) if @right.respond_to?(:optimize)
     return self
   end
@@ -136,5 +136,28 @@ class BlockNode
     @content = @content.optimize(klass) if @content.respond_to?(:optimize)
 
     return self
+  end
+end
+
+class CodeSpace
+  def optimize
+    @all_classes.each do |klass|
+      puts "Optimizing: #{klass.path}"
+      klass.optimize
+    end
+  end
+
+  class CodeSpaceClass
+    def optimize
+      @public_instance_methods.each_value do |meth|
+        meth.optimize(self)
+      end
+      @private_instance_methods.each_value do |meth|
+        meth.optimize(self)
+      end
+      @protected_instance_methods.each_value do |meth|
+        meth.optimize(self)
+      end
+    end
   end
 end
