@@ -344,9 +344,12 @@ class CodeSpace
         return @space.get_class(klass_path).const_get([const_name])
       else
         *klass_path, const_name = path
-        from_this_class = @path.dup.concat(klass_path)
-        if @space.has_class?(from_this_class)
-          return @space.get_class(from_this_class).const_get([const_name])
+
+        if klass_path.length > 0
+          from_this_class = @path.dup.concat(klass_path)
+          if @space.has_class?(from_this_class)
+            return @space.get_class(from_this_class).const_get([const_name])
+          end
         end
 
         options = (@parent.size).downto(1).map { |length| @parent[0...length].concat(klass_path) }

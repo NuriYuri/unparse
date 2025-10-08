@@ -1,4 +1,5 @@
 require_relative 'lib/bootstrap'
+require_relative 'lib/optimize'
 require 'yaml'
 
 $no_method_content = ARGV.include?('no_method_content')
@@ -6,11 +7,17 @@ $no_method_content = ARGV.include?('no_method_content')
 space = CodeSpace.new
 
 path = '/Volumes/mvme/projects/PokemonStudio/psdk-binaries/pokemonsdk/.release/scripts'
+optimized_folder = '/Volumes/mvme/projects/PokemonStudio/psdk-binaries/pokemonsdk/.release/optimized'
+Dir.mkdir(optimized_folder) unless Dir.exist?(optimized_folder)
+
+nodes = {}
+
 Dir["#{path}/*.rb"].each do |filename|
   base_name = File.basename(filename)
   puts "Processing #{base_name}"
   node, * = parse_with_comment(source_buffer(base_name, File.read(filename)))
   space.ingest_root(node)
+  nodes[base_name] = node
 end
 
 class Parser::Source::Range
@@ -110,3 +117,10 @@ end
 # end
 
 # File.write('code_space.yml', YAML.dump(space.instance_variable_get(:@all_classes_per_path).map { |k, v| [k.join('::'), v] }.to_h))
+
+space.optimize
+nodes.each do |filename, node|
+  puts "Writing #{filename}"
+  node = node.respond_to?(:as_node) ? node.as_node : node
+  File.write(File.join(optimized_folder, filename), Unparser.unparse(node))
+end
