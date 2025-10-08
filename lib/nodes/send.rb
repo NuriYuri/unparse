@@ -11,6 +11,14 @@ class SendNode < OverridableNode
     super
   end
 
+  # @param type [Symbol]
+  # @param children [Array<Parser::AST::Node | OverridableNode>]
+  # @param props [Hash]
+  # @return [Parser::AST::Node]
+  def as_node(type = @type, children = nil, props = @props)
+    super(type, children || [@target, @method_name, *@arguments], props)
+  end
+
   def is_marker?(type)
     return @target == nil && @arguments.empty? && @method_name == type
   end
