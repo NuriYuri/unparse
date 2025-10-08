@@ -22,7 +22,7 @@ end
 
 module WithSendNode
   def n(type, children, location)
-    return SendNode.new(type, children, { location: }) if type == :send
+    return SendNode.new(type, children, { location: }) if type == :send || type == :csend
 
     super
   end
