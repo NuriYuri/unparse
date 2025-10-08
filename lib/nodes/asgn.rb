@@ -48,6 +48,13 @@ module WithAsgnNode
 
     super
   end
+
+  def updated(type = nil, children = nil, props = nil)
+    return AsgnNode.new(type, children || @children, props || { location: @location }) if ASGN.include?(type)
+    return OpAsgnNode.new(type, children || @children, props || { location: @location }) if type == :op_asgn
+    super
+  end
 end
 
+Parser::AST::Node.prepend(WithAsgnNode)
 BuilderPrism.prepend(WithAsgnNode)

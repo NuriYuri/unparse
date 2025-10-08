@@ -26,6 +26,7 @@ class OverridableNode
 end
 
 class SendNode
+  MATH_NODE = %i[int float]
   # @param klass [CodeSpace::CodeSpaceClass]
   # @return [OverridableNode]
   def optimize(klass)
@@ -37,6 +38,14 @@ class SendNode
     # TODO: various PSDK configs optimizations
     end
     @arguments = @arguments.flat_map { |a| a.respond_to?(:optimize) ? a.optimize(klass) : a }
+    @target = @target.optimize(klass) if @target.respond_to?(:optimize)
+
+    if @target && MATH_NODE.include?(@target.type)
+      if @arguments.size == 1 && MATH_NODE.include?(@arguments[0].type)
+        res = @target.children[0].send(@method_name, @arguments[0].children[0])
+        return @target.updated(res.is_a?(Integer) ? :int : :float, [res])
+      end
+    end
 
     return self
   end
@@ -134,6 +143,19 @@ class BlockNode
     @left = @left.optimize(klass) if @left.respond_to?(:optimize)
     @arguments = @arguments.optimize(klass) if @left.respond_to?(:optimize)
     @content = @content.optimize(klass) if @content.respond_to?(:optimize)
+
+    return self
+  end
+end
+
+class NotNode
+  # @param klass [CodeSpace::CodeSpaceClass]
+  # @return [OverridableNode]
+  def optimize(klass)
+    if child = @children[0]
+      return child.updated(:false) if child.type == :true
+      return child.updated(:true) if child.type == :false || child.type == :nil
+    end
 
     return self
   end
