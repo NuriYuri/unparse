@@ -33,7 +33,7 @@ end
 
 class SendNode
   MATH_NODE = %i[int float]
-  MATH_OPS = %i[+ - * / ** ^]
+  MATH_OPS = %i[+ - * / ** ^ << >>]
   # @param klass [CodeSpace::CodeSpaceClass]
   # @return [OverridableNode]
   def optimize(klass)

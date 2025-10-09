@@ -37,6 +37,7 @@ class OverridableNode < Parser::AST::Node
   # Fix for unparser
   def instance_of?(*args)
     return true if args[0] == Parser::AST::Node
+    return super
   end
 
   # Fix for unparser

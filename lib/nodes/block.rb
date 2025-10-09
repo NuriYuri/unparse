@@ -19,10 +19,13 @@ class BlockNode < OverridableNode
     super(type, children || [@left, @arguments, @content], props)
   end
 end
+class BlockPass < OverridableNode
+end
 
 module WithBlockNode
   def n(type, children, location)
     return BlockNode.new(type, children, { location: }) if type == :block
+    return BlockPass.new(type, children, { location: }) if type == :block_pass
 
     super
   end

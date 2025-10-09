@@ -40,11 +40,15 @@ class OpAsgnNode < OverridableNode
   end
 end
 
+class MultipleLeftHandSideNode < OverridableNode
+end
+
 module WithAsgnNode
   ASGN = %i[lvasgn ivasgn cvasgn gvasgn masgn or_asgn and_asgn]
   def n(type, children, location)
     return AsgnNode.new(type, children, { location: }) if ASGN.include?(type)
     return OpAsgnNode.new(type, children, { location: }) if type == :op_asgn
+    return MultipleLeftHandSideNode.new(type, children, { location: }) if type == :mlhs
 
     super
   end
