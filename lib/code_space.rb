@@ -103,8 +103,8 @@ class CodeSpace
     # @param space [CodeSpace]
     def initialize(path, parent_path, node, space)
       @space = space
-      @path = path
-      @parent = parent_path
+      @path = path.dup
+      @parent = parent_path.dup
       @constants = {}
       @public_instance_methods = {}
       @private_instance_methods = {}
@@ -338,7 +338,7 @@ class CodeSpace
           return value if value
         end
 
-        options = (@parent.size).downto(1).map { |length| @parent[0...length].concat(path) }
+        options = path_options_from_parent(path)
         options.each do |o|
           next unless @space.has_class?(o)
 
@@ -351,7 +351,7 @@ class CodeSpace
           with_cbase = [:cbase, *path]
           return @space.get_class(with_cbase) if @space.has_class?(with_cbase)
 
-          options = (@parent.size).downto(1).map { |length| @parent[0...length].concat(path) }
+          options = path_options_from_parent(path)
           options.each do |o|
             next unless @space.has_class?(o)
 
@@ -370,8 +370,10 @@ class CodeSpace
     # @param path [Array<Symbol>] path to the class
     # @return [Parser::AST::Node | nil]
     def const_get(path)
+      return nil if @in_const_get
       return @constants[path[0]] if path.size == 1 && @constants.has_key?(path[0])
 
+      @in_const_get = true # Needed because some modules inside the class are included in the same class (leading to SystemStackError)
       if path[0] == :cbase
         return nil if @space.has_class?(path) # For now we ignore the class case
 
@@ -392,7 +394,7 @@ class CodeSpace
           return value if value
         end
 
-        options = (@parent.size).downto(1).map { |length| @parent[0...length].concat(klass_path) }
+        options = path_options_from_parent(klass_path)
         options.each do |o|
           next unless @space.has_class?(o)
 
@@ -401,9 +403,18 @@ class CodeSpace
         end
       end
       return nil
+    ensure
+      @in_const_get = false
     end
 
     private
+
+    # @param path [Array<Symbol>]
+    # @return [Array<Array<Symbol>>]
+    def path_options_from_parent(path)
+      size = @parent == @path ? @parent.size - 1 : @parent.size
+      return size.downto(1).map { |length| @parent[0...length].concat(path) }
+    end
 
     # @param node [Parser::AST::Node | nil]
     # @return [Array<Symbol> | nil]
