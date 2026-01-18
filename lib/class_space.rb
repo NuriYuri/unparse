@@ -18,6 +18,8 @@ class ClassSpace
       ingest(node.content, new_path)
     elsif node.is_a?(SingletonClassNode) && node.target&.type == :self
       insert_class_to(node, path, @singleton_classes)
+    elsif node.type == :if && path.size == 1
+      insert_class_to(node, [:cbase, node.__id__], @classes)
     elsif LOOP_INGESTIBLE_NODE.include?(node.type)
       node.children.each { |n| ingest(n, path) }
     end
