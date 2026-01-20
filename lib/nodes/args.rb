@@ -10,7 +10,8 @@ class ProcArg0Node < OverridableNode
 end
 class ObjCKWArgNode < OverridableNode
 end
-
+class KwSplatArgNode < OverridableNode
+end
 
 module WithArgsNode
   OTHER_ARGUMENTS = %i[arg restarg blockarg shadowarg kwarg kwrestarg]
@@ -21,6 +22,7 @@ module WithArgsNode
     return ArgNode.new(type, children, { location: }) if OTHER_ARGUMENTS.include?(type)
     return ProcArg0Node.new(type, children, { location: }) if type == :procarg0
     return ObjCKWArgNode.new(type, children, { location: }) if type == :objc_kwarg
+    return KwSplatArgNode.new(type, children, { location: }) if type == :kwsplat
 
     super
   end
